@@ -1,46 +1,421 @@
-<!DOCTYPE html>
+<!--
+ElonFlow v1 — Single-file GitHub Pages app (index.html)
+Purpose: Minimal, high-leverage day manager inspired by Elon Musk's time habits. Designed for 10-minute morning/evening use, low memory footprint (localStorage only), fast inputs, and ruthless prioritization.
+
+How to deploy on GitHub Pages (quick):
+1. Create a new public GitHub repository (e.g., `elonflow`).
+2. Add this file as `index.html` in the repository root.
+3. Push to `main` (or default) branch.
+4. In GitHub: Settings → Pages → Source: Branch `main` / folder `/ (root)` → Save. Your app will be at `https://<username>.github.io/<repo>/`.
+
+Design notes & mapping to Elon-style tactics:
+- Themed Days: quick theme selector (Ops / Growth / Finance / Hiring / Bottleneck) to occupy the mind.
+- Top 3 Priorities: quick, 5–10 second entries; marking done clears mental load.
+- Deep Work Blocks: set and run 25/50/90/120-minute blocks with a timer. Start ASAP and protect them.
+- Algorithm Quick Review: 5-question checklist to cut processes (who required this? delete? simplify? speed? automate?)
+- Meeting Hygiene: 25-minute timer, quick agenda, 'leave if not adding value' reminder.
+- Bottleneck Capture: one-click capture and assign so 'go to the bottleneck' is visible.
+- 2-sentence staff updates: collect concise reports in seconds.
+- Morning 10-min & Night 10-min flows: guided cards to accomplish a full-day setup and end-of-day reflection.
+- No long memory: localStorage only; export/import JSON for backups. Clear-all available.
+
+Privacy & Offline:
+- Works offline in the browser. No server required. All data stays in your browser (localStorage).
+
+Customization tips:
+- Tweak themes, timers, or text labels in the top `CONFIG` section of the JS.
+- Add your own Devotional prompt text if you want God-first reminders.
+
+-->
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Time Forge</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ElonFlow — Daily Battle Plan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg1:#0f1724; --bg2:#071126; --glass: rgba(255,255,255,0.06);
+      --accent: linear-gradient(90deg,#6EE7B7,#60A5FA);
+      --glass-strong: rgba(255,255,255,0.08);
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    html,body{height:100%;margin:0;background:radial-gradient(1200px 600px at 10% 10%, rgba(96,165,250,0.06), transparent), radial-gradient(1000px 400px at 90% 90%, rgba(110,231,183,0.04), transparent), linear-gradient(180deg,var(--bg1),var(--bg2));color:#E6EEF3}
+    .app{max-width:1100px;margin:28px auto;padding:22px;}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .logo{display:flex;gap:12px;align-items:center}
+    .logo .mark{width:42px;height:42px;background:var(--accent);border-radius:10px;display:grid;place-items:center;color:#04263A;font-weight:800}
+    h1{font-size:20px;margin:0}
+    .meta{opacity:0.9;font-size:13px}
+
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;padding:14px;box-shadow:0 6px 20px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
+    .row{display:flex;gap:10px;align-items:center}
+
+    /* Priorities */
+    .priorities{display:flex;flex-direction:column;gap:10px}
+    .priority{display:flex;align-items:center;gap:10px;background:var(--glass);padding:10px;border-radius:10px}
+    .priority input{flex:1;background:transparent;border:0;color:inherit;font-size:15px}
+    .btn{background:transparent;border:0;padding:8px 10px;border-radius:8px;cursor:pointer}
+    .btn.primary{background:linear-gradient(90deg,#60A5FA,#6EE7B7);color:#04263A;font-weight:700}
+    .small{font-size:12px;opacity:0.85}
+    .muted{opacity:0.7}
+
+    /* Timers */
+    .timer{font-weight:700;font-size:18px}
+
+    /* Algorithm checklist */
+    .algo-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+    .algo-item{display:flex;align-items:center;gap:10px}
+
+    /* Bottleneck list */
+    .bottle-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+    .bottle{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.12);padding:8px;border-radius:8px}
+
+    footer{margin-top:18px;text-align:center;opacity:0.7;font-size:13px}
+
+    /* Responsive */
+    @media (max-width:980px){.grid{grid-template-columns:1fr;}}
+
+    /* micro */
+    .pill{background:rgba(255,255,255,0.04);padding:6px 8px;border-radius:999px;font-size:12px}
+    .chip{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:8px}
+    .kicker{font-size:12px;opacity:0.8}
+    .done{text-decoration:line-through;opacity:0.5}
+    .flex{display:flex;gap:8px}
+
+    /* subtle animation */
+    .pulse{animation:pulse 2.2s ease-in-out infinite}
+    @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
+    .accentText{background:linear-gradient(90deg,#6EE7B7,#60A5FA);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+    .devotional{background:linear-gradient(90deg, rgba(96,165,250,0.08), rgba(110,231,183,0.05));padding:10px;border-radius:10px}
+
+  </style>
 </head>
 <body>
-    <div id="app">
-        <header>
-            <h1>Time Forge</h1>
-            <button id="new-block">+ Block</button>
-            <button id="scan">Scan Bottlenecks</button>
-            <button id="lock">Lock Day</button>
-            <button id="weekly-toggle">Weekly View</button>
-            <select id="theme-select">
-                <option value="">No Theme</option>
-                <option value="AI Deep">AI Deep</option>
-                <option value="Funding War">Funding War</option>
-                <!-- Add your themes -->
-            </select>
-        </header>
-        <div id="grid-container">
-            <div id="timeline"></div>
-            <div id="grid"></div>
+  <div class="app">
+    <header>
+      <div class="logo">
+        <div class="mark">G</div>
+        <div>
+          <h1>ElonFlow — Daily Battle Plan</h1>
+          <div class="meta">10-minute morning setup • Theme-focused • Local-only storage</div>
         </div>
-        <div id="palette">
-            <h2>Task Palette</h2>
-            <div id="blocks"></div>
+      </div>
+      <div class="row">
+        <div class="pill" id="dateDisplay"></div>
+        <select id="themeSelect" class="chip">
+          <option>Ops</option>
+          <option>Growth</option>
+          <option>Finance</option>
+          <option>Hiring</option>
+          <option>Bottleneck</option>
+          <option>Custom...</option>
+        </select>
+        <button class="btn" id="exportBtn" title="Export data">Export</button>
+        <input type="file" id="importFile" style="display:none" />
+        <button class="btn" id="importBtn">Import</button>
+        <button class="btn" id="clearBtn">Clear</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div>
+        <div class="card">
+          <div class="row" style="justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div class="kicker">Mission (one line)</div>
+              <div contenteditable id="missionLine" style="font-size:16px;margin-top:6px;min-height:20px;border-radius:8px;padding:6px;background:transparent;border:1px dashed rgba(255,255,255,0.03)">Deliver quality laundry, protect margins, and free my time for growth.</div>
+            </div>
+            <div style="text-align:right">
+              <div class="kicker">Faith Check</div>
+              <div class="devotional">
+                <div id="devotionalText" contenteditable style="min-width:200px;min-height:36px;outline:none">Read 1 short Psalm / 2-minute prayer</div>
+              </div>
+            </div>
+          </div>
+
+          <hr style="border:none;height:10px;opacity:0.02"/>
+
+          <div class="kicker">Top 3 Priorities (Elon-style)</div>
+          <div class="priorities" id="priorities"></div>
+          <div style="margin-top:10px;display:flex;gap:10px;">
+            <button class="btn primary" id="addPriority">+ Add Priority</button>
+            <button class="btn" id="autoFill">Quick Fill (10s)</button>
+            <div style="flex:1"></div>
+            <div class="small muted">Tip: keep them executable & measurable</div>
+          </div>
+
         </div>
-        <div id="modal" class="hidden">
-            <input id="task-name" placeholder="Task Name">
-            <input id="duration" type="number" min="5" step="5" placeholder="Duration (mins)">
-            <select id="priority">
-                <option value="red">Critical (Red)</option>
-                <option value="yellow">Iterative (Yellow)</option>
-                <option value="gray">Delegate (Gray)</option>
-            </select>
-            <button id="create-block">Forge</button>
+
+        <div class="card" style="margin-top:14px">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div>
+              <div class="kicker">Deep Work Blocks</div>
+              <div class="small muted">Protect long uninterrupted time for design & system fixes</div>
+            </div>
+            <div>
+              <select id="blockSelect" class="chip">
+                <option value="25">25 min (Focus)</option>
+                <option value="50">50 min (Focus+break)</option>
+                <option value="90">90 min (Deep)</option>
+                <option value="120">120 min (Full)
+                </option>
+              </select>
+              <button class="btn primary" id="startBlock">Start</button>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+            <div class="timer" id="blockTimer">Not running</div>
+            <div class="small muted">Use this when building AI-CFO, systems, or solving bottlenecks</div>
+          </div>
         </div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="kicker">Morning 10-min Setup</div>
+          <div class="small muted">Fast checklist to get aligned & ship today</div>
+          <ol style="margin-top:8px">
+            <li>Set today's theme & mission (30s)</li>
+            <li>Write top 3 priorities (2 min)</li>
+            <li>Run Algorithm review for 1 core process (3 min)</li>
+            <li>Start a deep work block (3–4 min)</li>
+            <li>Send 2-sentence quick updates (30s)</li>
+          </ol>
+          <div style="margin-top:10px;display:flex;gap:8px;">
+            <button class="btn primary" id="startMorning">Start 10-min Timer</button>
+            <div id="morningTimer" class="small muted">Ready</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="kicker">Algorithm Quick Review</div>
+          <div class="small muted">Run this on 1 process for 3 minutes. Delete before automating.</div>
+          <div class="algo-list" id="algoList">
+            <div class="algo-item"><input type="checkbox" data-key="who"> <div style="flex:1">Who required this step? (Name it)</div></div>
+            <div class="algo-item"><input type="checkbox" data-key="delete"> <div style="flex:1">Can it be deleted? (Kill it)</div></div>
+            <div class="algo-item"><input type="checkbox" data-key="simplify"> <div style="flex:1">Can we simplify it to 1 step?</div></div>
+            <div class="algo-item"><input type="checkbox" data-key="speed"> <div style="flex:1">Can we speed it by 10x?</div></div>
+            <div class="algo-item"><input type="checkbox" data-key="automate"> <div style="flex:1">Automate only after the above</div></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <input id="algoNote" placeholder="Quick note / action (e.g. remove step 3)" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;" />
+            <button class="btn primary" id="saveAlgo">Save</button>
+          </div>
+          <div id="algoSaved" style="margin-top:10px;opacity:0.9;font-size:13px"></div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="kicker">Bottlenecks</div>
+          <div class="small muted">Capture the 'go-to' problem and assign it — go fix it today</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="bottleText" placeholder="What's blocking flow right now?" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;" />
+            <input id="bottleOwner" placeholder="Owner" style="width:120px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;" />
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn primary" id="addBottle">Capture</button>
+            <button class="btn" id="focusBottle">Go to Bottleneck (today)</button>
+          </div>
+          <div class="bottle-list" id="bottleList"></div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="kicker">Meeting Tool</div>
+          <div class="small muted">Run disciplined meetings. 25 min default.</div>
+          <textarea id="meetingAgenda" placeholder="1-sentence purpose\n3 bullet outcomes" style="width:100%;min-height:70px;margin-top:8px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04)"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+            <input id="meetingLen" type="number" value="25" style="width:84px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;" />
+            <button class="btn primary" id="startMeeting">Start Meeting</button>
+            <div id="meetingTimer" class="timer">Not running</div>
+          </div>
+          <div class="small muted" style="margin-top:8px">Rule: if you're not adding value → leave. Action owner required per item.</div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="kicker">2-Sentence Staff Updates</div>
+          <div class="small muted">Collect quick alignment from team or self.</div>
+          <textarea id="twoSent" placeholder="Yesterday: ...\nToday: ..." style="width:100%;min-height:64px;margin-top:8px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04)"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn primary" id="sendTwo">Save Update</button>
+            <div style="flex:1"></div>
+            <button class="btn" id="viewUpdates">View</button>
+          </div>
+          <div id="updatesList" style="margin-top:8px;max-height:160px;overflow:auto"></div>
+        </div>
+
+      </div>
     </div>
-    <script src="script.js"></script>
+
+    <footer>Built for speed. Keep God First. Ship fast. Fix the bottleneck.</footer>
+  </div>
+
+  <script>
+    /* ---------------- CONFIG ----------------- */
+    const CONFIG = {
+      STORAGE_KEY: 'elonflow_v1',
+      DEFAULT_MISSION: 'Deliver quality laundry, protect margins, and free my time for growth.',
+      DEFAULT_DEVOTIONAL: 'Read 1 short Psalm / 2-minute prayer',
+    }
+
+    /* ---------- Utilities & persistence ---------- */
+    function uid(prefix='id'){return prefix + Math.random().toString(36).slice(2,9)}
+    function save(){localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(state))}
+    function load(){try{return JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY))||null}catch(e){return null}}
+
+    /* ---------- Initial state ---------- */
+    let state = load() || {
+      date: new Date().toISOString().slice(0,10),
+      theme: 'Ops',
+      mission: CONFIG.DEFAULT_MISSION,
+      devotional: CONFIG.DEFAULT_DEVOTIONAL,
+      priorities: [],
+      algos: [],
+      bottlenecks: [],
+      updates: [],
+    }
+
+    /* ---------- DOM refs ---------- */
+    const dateDisplay = document.getElementById('dateDisplay');
+    const themeSelect = document.getElementById('themeSelect');
+    const missionLine = document.getElementById('missionLine');
+    const devotionalText = document.getElementById('devotionalText');
+    const prioritiesEl = document.getElementById('priorities');
+    const addPriorityBtn = document.getElementById('addPriority');
+    const autoFillBtn = document.getElementById('autoFill');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const importFile = document.getElementById('importFile');
+    const clearBtn = document.getElementById('clearBtn');
+
+    const blockSelect = document.getElementById('blockSelect');
+    const startBlock = document.getElementById('startBlock');
+    const blockTimer = document.getElementById('blockTimer');
+
+    const algoNote = document.getElementById('algoNote');
+    const saveAlgo = document.getElementById('saveAlgo');
+    const algoSaved = document.getElementById('algoSaved');
+
+    const bottleText = document.getElementById('bottleText');
+    const bottleOwner = document.getElementById('bottleOwner');
+    const addBottle = document.getElementById('addBottle');
+    const bottleList = document.getElementById('bottleList');
+    const focusBottle = document.getElementById('focusBottle');
+
+    const meetingAgenda = document.getElementById('meetingAgenda');
+    const meetingLen = document.getElementById('meetingLen');
+    const startMeeting = document.getElementById('startMeeting');
+    const meetingTimer = document.getElementById('meetingTimer');
+
+    const twoSent = document.getElementById('twoSent');
+    const sendTwo = document.getElementById('sendTwo');
+    const updatesList = document.getElementById('updatesList');
+    const viewUpdates = document.getElementById('viewUpdates');
+
+    const startMorning = document.getElementById('startMorning');
+    const morningTimer = document.getElementById('morningTimer');
+
+    /* ---------- Render ---------- */
+    function renderDate(){const d=new Date();dateDisplay.textContent = d.toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric'})}
+
+    function renderTheme(){themeSelect.value = state.theme || 'Ops'}
+    function renderMission(){missionLine.textContent = state.mission}
+    function renderDevotional(){devotionalText.textContent = state.devotional}
+
+    function renderPriorities(){prioritiesEl.innerHTML='';state.priorities.forEach(p =>{
+      const div=document.createElement('div');div.className='priority';
+      const chk=document.createElement('input');chk.type='checkbox';chk.checked=p.done;chk.onchange=()=>{p.done=chk.checked;save();renderPriorities()}
+      const inp=document.createElement('input');inp.value=p.text;inp.oninput=(e)=>{p.text=e.target.value;save()}
+      const time=document.createElement('div');time.className='small muted';time.textContent=p.timeEstimate? p.timeEstimate+'m':''
+      const del=document.createElement('button');del.className='btn';del.textContent='🗑';del.onclick=()=>{state.priorities=state.priorities.filter(x=>x.id!==p.id);save();renderPriorities()}
+      if(p.done)inp.classList.add('done')
+      div.appendChild(chk);div.appendChild(inp);div.appendChild(time);div.appendChild(del);
+      prioritiesEl.appendChild(div);
+    })}
+
+    function addPriority(text=''){state.priorities.unshift({id:uid('p_'),text:text||'New priority',done:false,timeEstimate:''});save();renderPriorities()}
+
+    addPriorityBtn.onclick=()=>{addPriority();}
+    autoFillBtn.onclick=()=>{addPriority('Fix Model for folding errors');addPriority('Start AI-CFO data sync');addPriority('Call 1 potential manager');}
+
+    /* ---------- deep work ---------- */
+    let blockRemaining=0;let blockTimerInterval=null;
+    function startDeepWork(minutes){if(blockTimerInterval)clearInterval(blockTimerInterval);blockRemaining=minutes*60;updateBlockTimer();blockTimerInterval=setInterval(()=>{blockRemaining--;updateBlockTimer();if(blockRemaining<=0){clearInterval(blockTimerInterval);blockTimerInterval=null;notify('Deep work finished','Time to review your work.')}} ,1000)}
+    function updateBlockTimer(){if(blockRemaining<=0){blockTimer.textContent='Not running';return}const mm=Math.floor(blockRemaining/60);const ss=blockRemaining%60;blockTimer.textContent= mm+':' + String(ss).padStart(2,'0')}
+    startBlock.onclick=()=>{startDeepWork(Number(blockSelect.value));}
+
+    /* ---------- Algorithm ---------- */
+    saveAlgo.onclick=()=>{
+      const checks=[...document.querySelectorAll('#algoList input')].map(i=>i.checked);
+      const note=algoNote.value.trim();state.algos.unshift({id:uid('a_'),checks, note, ts:Date.now()});save();algoSaved.textContent='Saved — action created.\nTip: do 1 deletion per week.';setTimeout(()=>algoSaved.textContent='',2600);algoNote.value='';
+    }
+
+    /* ---------- Bottlenecks ---------- */
+    function renderBottlenecks(){bottleList.innerHTML='';state.bottlenecks.forEach(b=>{const d=document.createElement('div');d.className='bottle';d.innerHTML=`<div><strong>${escapeHtml(b.text)}</strong><div class='small muted'>owner: ${escapeHtml(b.owner||'-')} • ${new Date(b.ts).toLocaleTimeString()}</div></div><div><button class='btn' data-id='${b.id}'>Done</button></div>`;bottleList.appendChild(d)})
+      [...bottleList.querySelectorAll('button')].forEach(btn=>btn.onclick=(e)=>{const id=btn.dataset.id;state.bottlenecks=state.bottlenecks.filter(x=>x.id!==id);save();renderBottlenecks()})}
+
+    addBottle.onclick = () => {
+      const t = bottleText.value.trim();
+      if (!t) return;
+      state.bottlenecks.unshift({ id: uid('b_'), text: t, owner: bottleOwner.value.trim(), ts: Date.now() });
+      save();
+      bottleText.value = '';
+      bottleOwner.value = '';
+      renderBottlenecks();
+      notify('Bottleneck saved', 'Go fix it today.');
+    }
+}
+
+    focusBottle.onclick=()=>{if(!state.bottlenecks.length){alert('No bottlenecks recorded. Capture one first.');return}const top=state.bottlenecks[0];alert('Focus today: ' + top.text + '\nOwner: ' + (top.owner||'you'));}
+
+    /* ---------- Meeting ---------- */
+    let meetingSeconds=0;let meetingInterval=null;
+    startMeeting.onclick=()=>{const m=Number(meetingLen.value);if(m<=0) return;meetingSeconds=m*60;meetingTimer.textContent=(m)+":00";if(meetingInterval)clearInterval(meetingInterval);meetingInterval=setInterval(()=>{meetingSeconds--;updateMeeting();if(meetingSeconds<=0){clearInterval(meetingInterval);meetingInterval=null;notify('Meeting finished','Wrap up & set action owners.')}} ,1000)}
+    function updateMeeting(){const mm=Math.floor(meetingSeconds/60);const ss=meetingSeconds%60;meetingTimer.textContent = mm+':'+String(ss).padStart(2,'0')}
+
+    /* ---------- 2-sentence updates ---------- */
+    sendTwo.onclick=()=>{const t=twoSent.value.trim();if(!t) return;state.updates.unshift({id:uid('u_'),text:t,ts:Date.now()});twoSent.value='';save();renderUpdates();notify('Update saved','Short and sharp.')}
+    function renderUpdates(){updatesList.innerHTML='';state.updates.slice(0,30).forEach(u=>{const d=document.createElement('div');d.style.padding='8px';d.style.borderRadius='8px';d.style.marginBottom='6px';d.style.background='rgba(255,255,255,0.02)';d.innerHTML=`<div class='small muted'>${new Date(u.ts).toLocaleString()}</div><div>${escapeHtml(u.text)}</div>`;updatesList.appendChild(d)})}
+    viewUpdates.onclick=()=>{if(!state.updates.length) alert('No updates yet.'); else alert(state.updates.slice(0,10).map(u=>u.text).join('\n---\n'))}
+
+    /* ---------- Morning Timer ---------- */
+    let morningSeconds=10*60;let morningInterval=null;startMorning.onclick=()=>{morningSeconds=10*60;morningTimer.textContent='10:00';if(morningInterval)clearInterval(morningInterval);morningInterval=setInterval(()=>{morningSeconds--;const mm=Math.floor(morningSeconds/60);const ss=morningSeconds%60;morningTimer.textContent=mm+':'+String(ss).padStart(2,'0');if(morningSeconds<=0){clearInterval(morningInterval);morningInterval=null;notify('Morning 10-min completed','Review your checklist.' )}},1000)}
+
+    /* ---------- Export/Import/Clear ---------- */
+    exportBtn.onclick=()=>{const blob=new Blob([JSON.stringify(state, null, 2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='elonflow-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();}
+    importBtn.onclick=()=>{importFile.click()}
+    importFile.onchange=(e)=>{const f=e.target.files[0];if(!f) return;const r=new FileReader();r.onload=()=>{try{state=JSON.parse(r.result);save();fullRender();alert('Imported');}catch(err){alert('Import failed: '+err.message)}};r.readAsText(f)}
+    clearBtn.onclick=()=>{if(confirm('Clear all local data?')){localStorage.removeItem(CONFIG.STORAGE_KEY);state={date:new Date().toISOString().slice(0,10),theme:'Ops',mission:CONFIG.DEFAULT_MISSION,devotional:CONFIG.DEFAULT_DEVOTIONAL,priorities:[],algos:[],bottlenecks:[],updates:[]};save();fullRender();}}
+
+    /* ---------- helpers ---------- */
+    function escapeHtml(s){return String(s).replace(/[&<>\"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))}
+
+    function notify(title,body){if(Notification && Notification.permission === 'granted'){new Notification(title,{body})}else if(Notification && Notification.permission !== 'denied'){Notification.requestPermission().then(p=>{if(p==='granted') new Notification(title,{body})})}}
+
+    /* ---------- General rendering ---------- */
+    function fullRender(){renderDate();renderTheme();renderMission();renderDevotional();renderPriorities();renderBottlenecks();renderUpdates()}
+
+    // bind theme change
+    themeSelect.onchange=(e)=>{const v=e.target.value;if(v==='Custom...'){const t=prompt('Enter custom theme');if(t) state.theme=t; else state.theme='Ops'}else state.theme=v;save();renderTheme()}
+    missionLine.oninput=(e)=>{state.mission=e.target.textContent;save()}
+    devotionalText.oninput=(e)=>{state.devotional=e.target.textContent;save()}
+
+    // initial
+    fullRender();
+
+    // keyboard shortcuts (N = new priority, D= start 25m focus)
+    document.addEventListener('keydown',e=>{if(e.key==='N' || e.key==='n'){addPriority();} if(e.key==='D' || e.key==='d'){startDeepWork(25)}})
+
+    // small UX: create 3 defaults if empty
+    if(state.priorities.length===0){addPriority('Fix quality issues in dryer 2');addPriority('Start AI-CFO sync with WhatsApp messages');addPriority('Call potential manager – shortlist 3')}
+
+    // tune: save periodically
+    setInterval(save, 10_000);
+  </script>
 </body>
 </html>
