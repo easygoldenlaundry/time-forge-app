@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Forge</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Time Forge</h1>
+            <button id="new-block">+ Block</button>
+            <button id="scan">Scan Bottlenecks</button>
+            <button id="lock">Lock Day</button>
+            <button id="weekly-toggle">Weekly View</button>
+            <select id="theme-select">
+                <option value="">No Theme</option>
+                <option value="AI Deep">AI Deep</option>
+                <option value="Funding War">Funding War</option>
+                <!-- Add your themes -->
+            </select>
+        </header>
+        <div id="grid-container">
+            <div id="timeline"></div>
+            <div id="grid"></div>
+        </div>
+        <div id="palette">
+            <h2>Task Palette</h2>
+            <div id="blocks"></div>
+        </div>
+        <div id="modal" class="hidden">
+            <input id="task-name" placeholder="Task Name">
+            <input id="duration" type="number" min="5" step="5" placeholder="Duration (mins)">
+            <select id="priority">
+                <option value="red">Critical (Red)</option>
+                <option value="yellow">Iterative (Yellow)</option>
+                <option value="gray">Delegate (Gray)</option>
+            </select>
+            <button id="create-block">Forge</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
